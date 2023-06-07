@@ -20,20 +20,13 @@ main :: IO ()
 main = do
     let suits = [Clubs, Spades, Hearts, Diamonds]
     let deck = foldr ((++) . initiateSuit) [] suits
-    gen <- getStdGen 
-    --res <- randomRs (0, 51) gen  
-    let test = [0..9]
-    print $ length test
-    print "swap tests"
-    print $ swap 9 test
-    print $ swap 1 $ swap 1 test 
-    print $ swap 4 $ swap 3 $ swap 2 $ swap 9 test 
     shuffled <- shuffleDeck deck
     print $ take 5 shuffled
     print $ length shuffled
 
+
 shuffleDeck :: Deck -> IO Deck 
-shuffleDeck xs = randNum >>= (\r -> shuffler 52 r xs)where 
+shuffleDeck xs = randNum >>= (\r -> shuffler 100 r xs)where 
                     shuffler :: Int -> Int -> Deck -> IO Deck 
                     shuffler 0 _ xs = return xs 
                     shuffler times n (x:xs) = do 
@@ -57,10 +50,6 @@ swap n (x:xs) = do
 
 randNum :: IO Int 
 randNum =  getStdRandom (randomR (2, 51))
-
-get :: Int -> [a] -> a 
-get 0 (x:xs) = x 
-get n (x:xs) = get (n - 1) xs 
 
 initiateSuit = helper [] 13 where 
     helper :: Deck -> Int -> Suit -> Deck
