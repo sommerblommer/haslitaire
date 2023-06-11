@@ -1,6 +1,7 @@
 module Main (main) where
 import Lib
 import System.Random
+import Text.Read (Lexeme(String))
 data Suit = 
     Clubs |
     Spades | 
@@ -54,7 +55,7 @@ composeTUI board sprites = helper 1 board sprites where
     helper n board sprites = helper (n+1) (map (drop 1) board) sprites ++ composeLine board sprites
 
 
-composeLine :: Board -> [String] -> String 
+composeLine :: Board -> [String] -> [Line] 
 composeLine (x:xs) sprites
     | length x == 1 = findTUIElement sprites (head ( reverse x)) 7 6 ++ composeLine xs sprites
     | null x = "     "
@@ -62,16 +63,17 @@ composeLine (x:xs) sprites
 composeLine [] _ = "\n"
 
 
--- should be able to find start of sprite based on suit
-findTUIElement :: [String] -> Card -> Int -> Int -> String 
-findTUIElement text (Card num s shown) start lengthOfSprite 
-    | shown =
-        case s of
-            Clubs -> breakLines (take lengthOfSprite (drop (start - 1) text))
-            Hearts -> breakLines (take lengthOfSprite (drop (start - 1) text))
-            Spades -> breakLines (take lengthOfSprite (drop (start  - 1) text))
-            Diamonds -> breakLines (take lengthOfSprite (drop (start - 1) text))
-    |otherwise = breakLines (take 2 text)
+createLines :: Pile -> [Line]
+createLines (x:xs) = lineify x : createLines xs
+    where 
+        lineify :: Card -> [String] -> [Line]
+        lineify card sprites = helper 0 7 card (findSprite 7 card sprites)
+            where 
+                helper :: Int -> Int -> Card -> [String] -> [Line]
+                helper n len card sprite 
+                    | n == len = (Line n (head (drop (n - 1) sprite)))
+                    | otherwise = (Line n (head(drop (n - 1) sprite))) : helper (n+1) len card sprite
+
 
 breakLines :: [String] -> String
 breakLines (x:xs) = x ++ "\n" ++ breakLines xs
