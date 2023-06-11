@@ -38,7 +38,7 @@ draw :: Board -> IO ()
 draw board = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
-    putStrLn $ composeTUI board cards  
+    putStrLn . stringifyLines $ drawBoard board cards  
 
 
 printLines :: [String] -> IO ()
@@ -48,32 +48,31 @@ printLines (x:xs) = do
 printLines [] = putStrLn ""
 
 
-composeTUI :: Board -> [String] -> String
-composeTUI board sprites = helper 1 board sprites where 
-    helper :: Int -> Board -> [String] -> String
-    helper 7 board sprites = composeLine board sprites
-    helper n board sprites = helper (n+1) (map (drop 1) board) sprites ++ composeLine board sprites
+drawBoard :: Board -> [String] -> [[Line]]
+drawBoard [] _ = []
+drawBoard (x:xs) sprites =  createLines x sprites ++ drawBoard xs sprites
 
-
-composeLine :: Board -> [String] -> [Line] 
-composeLine (x:xs) sprites
-    | length x == 1 = findTUIElement sprites (head ( reverse x)) 7 6 ++ composeLine xs sprites
-    | null x = "     "
-    | otherwise = findTUIElement sprites (head ( reverse x)) 4 2 ++ composeLine xs sprites 
-composeLine [] _ = "\n"
-
-
-createLines :: Pile -> [Line]
-createLines (x:xs) = lineify x : createLines xs
+createLines :: Pile -> [String] -> [[Line]]
+createLines [] _ = []
+createLines (x:xs) sprites = lineify x sprites : createLines xs sprites
     where 
         lineify :: Card -> [String] -> [Line]
         lineify card sprites = helper 0 7 card (findSprite 7 card sprites)
-            where 
+            where  -- acc, length of card, card, sprites
                 helper :: Int -> Int -> Card -> [String] -> [Line]
                 helper n len card sprite 
-                    | n == len = (Line n (head (drop (n - 1) sprite)))
+                    | n == len = [(Line n (head (drop (n - 1) sprite)))]
                     | otherwise = (Line n (head(drop (n - 1) sprite))) : helper (n+1) len card sprite
 
+
+findSprite :: Int -> Card -> [String] -> [String]
+findSprite _ (Card _ _ False) sprites = take 2 sprites
+findSprite len (Card num suit True) sprites = 
+    case suit of
+        Clubs -> take len $ drop 3 sprites
+        Hearts -> take len $ drop 3 sprites
+        Spades -> take len $ drop 3 sprites
+        Diamonds -> take len $ drop 3 sprites
 
 breakLines :: [String] -> String
 breakLines (x:xs) = x ++ "\n" ++ breakLines xs
@@ -83,6 +82,12 @@ showFront :: Pile -> Pile
 showFront ((Card x s _):rest) = Card x s True : rest
 showFront [] = []
 
+stringifyLines :: [[Line]] -> String
+stringifyLines xs = helper $ map head xs 
+    where 
+        helper :: [Line] -> String
+        helper ((Line _ s):xs) = s ++ helper xs 
+        helper [] = "\n"
 
 -- still not done!!!!
 -- move int amount of cards, from pile int, to pile int 
