@@ -1,5 +1,7 @@
 module Main (main) where
+
 import System.Random
+
 data Suit = 
     Clubs |
     Spades | 
@@ -22,8 +24,13 @@ clubsstart :: Int
 clubsstart = 3
 
 heartsstart :: Int
-heartsstart = 127
+heartsstart = 126
 
+spadesstart :: Int
+spadesstart = 249
+
+diamondsstart :: Int
+diamondsstart = 372
 main :: IO ()
 main = do
     let suits = [Clubs, Spades, Hearts, Diamonds]
@@ -34,8 +41,31 @@ main = do
     let noard = initiatePiles shuffled
     let board =  fst noard
     let hand = snd noard
+    print $ foldr ((+) . length) 0 board
     print "-----------------------"
-    draw board
+    gaming board hand
+    print "done"
+
+gaming :: Board -> Hand -> IO () 
+gaming board hand = do 
+    draw board 
+    command <- getLine
+    print $ lines command
+    gaming (handleCommand  board (words command)) hand
+    
+
+handleCommand :: Board -> [String] -> Board 
+handleCommand board xs = 
+    case (length xs) of 
+        _ -> map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 3 xs) (getCommandInt 5 xs)
+
+getCommandInt :: Int -> [String] -> Int
+getCommandInt _ [] = error "no found"
+getCommandInt 0 (x:xs) = stringToInt x 
+getCommandInt n (x:xs) = getCommandInt (n-1) xs 
+
+stringToInt :: String -> Int 
+stringToInt = read
 
 -- drawing -- 
 draw :: Board -> IO ()
@@ -45,16 +75,23 @@ draw board = do
     --print $ lineifySprite 0 $ take 2 cards
     --print $ lineifyPile (last board) cards
     --print $ lineifyBoard (findLimit board) board cards
+    print $ map length $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
+
 
 
 stringifyLines :: [[Line]] -> String
 stringifyLines [] = ""
-stringifyLines cardLines = helper (map head cardLines) ++ stringifyLines (map (drop 1) cardLines)
-    where 
-        helper :: [Line] -> String
-        helper [] = "\n"
-        helper ((Line _ string):xs) = string ++ helper xs  
+stringifyLines cardLines =
+    if foldr ((+) . length) 0 cardLines == 0
+        then ""
+        else 
+            helper (map head cardLines) ++ stringifyLines (map (drop 1) cardLines)
+                where 
+                    helper :: [Line] -> String
+                    helper [] = "\n"
+                    helper ((Line _ string):xs) = string ++ helper xs  
+
 
 
 findLimit :: Board -> Int 
@@ -82,40 +119,40 @@ lineifyPile :: Int -> Pile -> [String] -> [Line]
 lineifyPile limit pile sprites = helper 0 (reverse pile) sprites 
     where 
         helper :: Int -> Pile -> [String] -> [Line]
-        helper n [x] sprites = lineifySprite n (findSprite True x sprites) ++ fillToLimit (n + 1) 
-            where 
-                fillToLimit :: Int -> [Line]
-                fillToLimit n 
-                    | n < limit = (Line n "       ") : fillToLimit (n + 1)
-                    | otherwise = []
+        helper n [] _ = fillToLimit n (limit + 4)
+        helper n [x] sprites = lineifySprite n (findSprite True x sprites) ++ fillToLimit (n + 1) limit
         helper n (x:xs) sprites = 
             do 
                 let firstLine = lineifySprite n (findSprite False x sprites)
                 let rest = helper (n + length firstLine) xs sprites
                 firstLine ++ rest
-        helper _ _ _ = []
+
+fillToLimit :: Int -> Int -> [Line]
+fillToLimit n limit
+    | n < limit = (Line n "       ") : fillToLimit (n + 1) limit
+    | otherwise = []
 
 
 findSprite :: Bool -> Card -> [String] -> [String]
 findSprite True (Card num suit True) sprites =
     case suit of 
-        clubs -> take 5 $ drop (clubsstart + 39 + 6 * num) sprites 
-        Hearts -> take 5 $ drop (clubsstart + 39) sprites 
-        Spades -> take 5 $ drop (clubsstart + 39) sprites 
-        Diamonds -> take 5 $ drop (clubsstart + 39) sprites 
+        Clubs -> take 5 $ drop (clubsstart + 39 + 6 * num) sprites 
+        Hearts -> take 5 $ drop (heartsstart + 39 + 6 * num) sprites 
+        Spades -> take 5 $ drop (spadesstart + 39 + 6 * num) sprites 
+        Diamonds -> take 5 $ drop (diamondsstart + 39 + 6 * num) sprites 
 findSprite False (Card num suit True) sprites = 
     case suit of 
-        Clubs -> take 2 $ drop 3 sprites
-        Hearts -> take 2 $ drop 3 sprites
-        Spades -> take 2 $ drop 3 sprites
-        Diamonds -> take 2 $ drop 3 sprites
+        Clubs -> take 2 $ drop (clubsstart + 3 * num ) sprites
+        Hearts -> take 2 $ drop (heartsstart + 3 * num ) sprites
+        Spades -> take 2 $ drop (spadesstart + 3 * num ) sprites
+        Diamonds -> take 2 $ drop (diamondsstart + 3 * num ) sprites
 findSprite _ (Card _ _ False) sprites = take 2 sprites 
 
 
 lineifySprite :: Int -> [String] -> [Line]
 lineifySprite _ [] = []
 -- ++ " " so there is space between piles
-lineifySprite n xs = Line n (head xs ++ " " ) : lineifySprite (n+1) (drop 1 xs)
+lineifySprite n (x:xs) = Line n (x ++ " " ) : lineifySprite (n+1) xs
 
 
 
@@ -151,8 +188,8 @@ moveCardsBetweenPiles xs amount from to
 
 popAmoumt :: Int -> Pile -> Pile
 popAmoumt 0 xs = xs
-popAmoumt n (x:xs) = popAmoumt (n - 1) xs
-popAmoumt _ xs = xs
+popAmoumt n (_:xs) = popAmoumt (n - 1) xs
+popAmoumt _ [] = []
 
 -- move amount, from pile, to pile
 multiPopAndMove :: Int -> Pile -> Pile -> Pile
