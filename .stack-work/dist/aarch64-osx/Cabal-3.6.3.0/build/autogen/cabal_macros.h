@@ -20,6 +20,16 @@
   (major1) == 4 && (major2) <  16 || \
   (major1) == 4 && (major2) == 16 && (minor) <= 4)
 #endif /* MIN_VERSION_base */
+/* package process-1.6.16.0 */
+#ifndef VERSION_process
+#define VERSION_process "1.6.16.0"
+#endif /* VERSION_process */
+#ifndef MIN_VERSION_process
+#define MIN_VERSION_process(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  6 || \
+  (major1) == 1 && (major2) == 6 && (minor) <= 16)
+#endif /* MIN_VERSION_process */
 /* package random-1.2.1.1 */
 #ifndef VERSION_random
 #define VERSION_random "1.2.1.1"
@@ -123,10 +133,10 @@
 #endif /* MIN_TOOL_VERSION_runghc */
 
 #ifndef CURRENT_PACKAGE_KEY
-#define CURRENT_PACKAGE_KEY "haslitaire-0.1.0.0-3pP6F1OyLTH5xqHlzkzqwP"
+#define CURRENT_PACKAGE_KEY "haslitaire-0.1.0.0-BPPzxE6cM2l8Q1U6j6Ti89"
 #endif /* CURRENT_packageKey */
 #ifndef CURRENT_COMPONENT_ID
-#define CURRENT_COMPONENT_ID "haslitaire-0.1.0.0-3pP6F1OyLTH5xqHlzkzqwP"
+#define CURRENT_COMPONENT_ID "haslitaire-0.1.0.0-BPPzxE6cM2l8Q1U6j6Ti89"
 #endif /* CURRENT_COMPONENT_ID */
 #ifndef CURRENT_PACKAGE_VERSION
 #define CURRENT_PACKAGE_VERSION "0.1.0.0"

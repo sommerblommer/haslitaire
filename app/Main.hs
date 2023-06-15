@@ -2,6 +2,8 @@ module Main (main) where
 
 import System.Random
 
+import System.Cmd
+
 data Suit = 
     Clubs |
     Spades | 
@@ -15,7 +17,6 @@ type Deck = [Card]
 type Pile = [Card]
 type Board = [Pile]
 type Hand = Pile 
-type VisualHand = Pile
 data Line = Line Int String 
     deriving Show
 
@@ -31,6 +32,7 @@ spadesstart = 249
 
 diamondsstart :: Int
 diamondsstart = 372
+
 main :: IO ()
 main = do
     let suits = [Clubs, Spades, Hearts, Diamonds]
@@ -43,14 +45,16 @@ main = do
     let hand = snd noard
     print $ foldr ((+) . length) 0 board
     print "-----------------------"
-    gaming board hand
+    gaming board $ initHand hand
     print "done"
 
 gaming :: Board -> Hand -> IO () 
-gaming board hand = do 
-    draw board 
+gaming board hand = do
+    r <- system "clear"
+    --print hand
+    draw board hand
     command <- getLine
-    print $ lines command
+    --print $ lines command
     gaming (handleCommand  board (words command)) hand
     
 
@@ -64,20 +68,25 @@ getCommandInt _ [] = error "no found"
 getCommandInt 0 (x:xs) = stringToInt x 
 getCommandInt n (x:xs) = getCommandInt (n-1) xs 
 
-stringToInt :: String -> Int 
-stringToInt = read
+initHand :: Hand -> Hand 
+initHand [] = []
+initHand ((Card n s _):xs) = Card n s True : initHand xs
+
 
 -- drawing -- 
-draw :: Board -> IO ()
-draw board = do
+draw :: Board -> Hand -> IO ()
+draw board hand = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
     --print $ lineifySprite 0 $ take 2 cards
     --print $ lineifyPile (last board) cards
     --print $ lineifyBoard (findLimit board) board cards
-    print $ map length $ lineifyBoard (findLimit board) board cards
+    --print $ map length $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
+    putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (take 3 hand) cards 
 
+stringToInt :: String -> Int 
+stringToInt = read
 
 
 stringifyLines :: [[Line]] -> String
@@ -100,7 +109,6 @@ findLimit board = do
     if long == 0 
         then 0
         else 2*(long - 1) + 5 
-    
 
 findLongest :: Board -> Int 
 findLongest = helper 0 
@@ -110,6 +118,18 @@ findLongest = helper 0
         helper n (x:xs) 
             | n < length x = helper (length x) xs 
             | otherwise = helper n xs
+
+---------------------- Hand specific drawing -----------------------
+-- length of board, and hand
+lineifyHand :: Int -> Hand -> [String] -> [[Line]]
+lineifyHand n [x] sprites = [lineifySprite n (findSprite True x sprites)]
+lineifyHand n (x:xs) sprites = sideifyCards n (findSprite True x sprites) : lineifyHand n xs sprites 
+
+    
+sideifyCards :: Int -> [String] -> [Line]
+sideifyCards _ [] = []
+sideifyCards n (x:xs) = Line n (take 3 x ++ " ") : sideifyCards (n+1) xs 
+---------------------- Board specific drawing -----------------------
 
 lineifyBoard :: Int -> Board -> [String] -> [[Line]]
 lineifyBoard _ [] _ = []
@@ -133,19 +153,21 @@ fillToLimit n limit
     | otherwise = []
 
 
+
+---------------------- finding and using sprites -----------------------
 findSprite :: Bool -> Card -> [String] -> [String]
 findSprite True (Card num suit True) sprites =
     case suit of 
-        Clubs -> take 5 $ drop (clubsstart + 39 + 6 * num) sprites 
-        Hearts -> take 5 $ drop (heartsstart + 39 + 6 * num) sprites 
-        Spades -> take 5 $ drop (spadesstart + 39 + 6 * num) sprites 
-        Diamonds -> take 5 $ drop (diamondsstart + 39 + 6 * num) sprites 
+        Clubs -> take 5 $ drop (clubsstart + 39 + 6 *(num - 1)) sprites 
+        Hearts -> take 5 $ drop (heartsstart + 39 + 6 * (num- 1)) sprites 
+        Spades -> take 5 $ drop (spadesstart + 39 + 6 * (num - 1)) sprites 
+        Diamonds -> take 5 $ drop (diamondsstart + 39 + 6 * (num - 1)) sprites 
 findSprite False (Card num suit True) sprites = 
     case suit of 
-        Clubs -> take 2 $ drop (clubsstart + 3 * num ) sprites
-        Hearts -> take 2 $ drop (heartsstart + 3 * num ) sprites
-        Spades -> take 2 $ drop (spadesstart + 3 * num ) sprites
-        Diamonds -> take 2 $ drop (diamondsstart + 3 * num ) sprites
+        Clubs -> take 2 $ drop (clubsstart + 3 * (num - 1)) sprites
+        Hearts -> take 2 $ drop (heartsstart + 3 * (num - 1) ) sprites
+        Spades -> take 2 $ drop (spadesstart + 3 * (num - 1) ) sprites
+        Diamonds -> take 2 $ drop (diamondsstart + 3 * (num - 1) ) sprites
 findSprite _ (Card _ _ False) sprites = take 2 sprites 
 
 
@@ -157,7 +179,7 @@ lineifySprite n (x:xs) = Line n (x ++ " " ) : lineifySprite (n+1) xs
 
 
 
--- we gaming --
+---------------------- initiating game -----------------------
 showFront :: Pile -> Pile 
 showFront ((Card x s _):rest) = Card x s True : rest
 showFront [] = []

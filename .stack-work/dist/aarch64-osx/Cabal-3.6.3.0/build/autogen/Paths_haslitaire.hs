@@ -43,7 +43,7 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 bindir     = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/bin"
-libdir     = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/lib/aarch64-osx-ghc-9.2.7/haslitaire-0.1.0.0-3pP6F1OyLTH5xqHlzkzqwP"
+libdir     = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/lib/aarch64-osx-ghc-9.2.7/haslitaire-0.1.0.0-BPPzxE6cM2l8Q1U6j6Ti89"
 dynlibdir  = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/lib/aarch64-osx-ghc-9.2.7"
 datadir    = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/share/aarch64-osx-ghc-9.2.7/haslitaire-0.1.0.0"
 libexecdir = "/Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/install/aarch64-osx/0f01c001fe9e84d64732fdb84c33c5a9a0d393e8af9d6dd03321444c3fbd511b/9.2.7/libexec/aarch64-osx-ghc-9.2.7/haslitaire-0.1.0.0"

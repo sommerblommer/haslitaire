@@ -1,16 +1,16 @@
 /Users/alexandersommer/.ghcup/ghc/9.2.7/lib/ghc-9.2.7/lib/aarch64-osx-ghc-9.2.7/rts-1.0.2/include/ghcversion.h:
   hash: 33b3e1b0047b6cca48a29d69ecd33f64042e571e70747f1155f402ea75f33a9f
 ? /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/dist/aarch64-osx/Cabal-3.6.3.0/build/autogen/Paths_haslitaire.hs
-: hash: 6a8cc63e5706d0d7f7d1348864eeed60d83edb708c34b873f8d6e32b2cbe1442
+: hash: f22941a20403cdaed0dc2fd3fbdf4f054f47caa06adb69529113436ce73bf8ec
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/.stack-work/dist/aarch64-osx/Cabal-3.6.3.0/build/autogen/cabal_macros.h:
-  hash: 6f8e2de73f04a85a6c30be5b30a7db41aaf10e09b6b1b15c8104d8f09f578c97
+  hash: 38376e1b953d88faee5dc3ebcaa95def4a85cf38b75963c4a15512e39011ce36
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/CHANGELOG.md:
   hash: 51a27aa8f7b71919bfef3abf6d8abeb15fcab0c5e34d76307fe80941f86ea556
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/README.md:
   hash: 5a755d54d4e6e769fe5b884b9305e0de20d0f8afaebaf87d1c6b32cb8ef82946
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/haslitaire.cabal:
-  hash: 40f5993211c3cbb3b10d1f7a8d06e7426e2faf3c5218c28de4e05298c3210e7e
+  hash: 866e75105618c8cdb1ed57f3a2d968779d47d617bf0d88e05dcdd2208d19d245
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/package.yaml:
-  hash: e3ef3c221dee553b788eb5097ccc4095d2921583277f57d089334bf42083e290
+  hash: 9a8a7ad20c0ad1b8d5b6e713bb3fc9a082450bc1dc370e64aaab1ba6487d238e
 /Users/alexandersommer/Desktop/fritid/haskell/haslitaire/src/Lib.hs:
   hash: 670c13ec0d42e2df4fc58e8bb74592940a418d0dc23cc41c9a1886d93949b4be
