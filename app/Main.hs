@@ -1,7 +1,5 @@
 module Main (main) where
-import Lib
 import System.Random
-import Text.Read (Lexeme(String))
 data Suit = 
     Clubs |
     Spades | 
@@ -19,6 +17,12 @@ type VisualHand = Pile
 data Line = Line Int String 
     deriving Show
 
+
+clubsstart :: Int
+clubsstart = 3
+
+heartsstart :: Int
+heartsstart = 127
 
 main :: IO ()
 main = do
@@ -38,20 +42,20 @@ draw :: Board -> IO ()
 draw board = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
-    putStrLn "first test"
-    print $ lineifySprite 0 $ take 2 cards
-    putStrLn "second test"
+    --print $ lineifySprite 0 $ take 2 cards
     --print $ lineifyPile (last board) cards
-    print $ lineifyBoard (findLimit board) board cards
+    --print $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
 
 
-stringifyLines :: [[Line]] -> String 
-stringifyLines lines = helper (map head lines) ++ stringifyLines (map (drop 1) lines)
+stringifyLines :: [[Line]] -> String
+stringifyLines [] = ""
+stringifyLines cardLines = helper (map head cardLines) ++ stringifyLines (map (drop 1) cardLines)
     where 
         helper :: [Line] -> String
         helper [] = "\n"
-        helper ((Line n string):xs) = string ++ helper xs  
+        helper ((Line _ string):xs) = string ++ helper xs  
+
 
 findLimit :: Board -> Int 
 findLimit board = do
@@ -93,7 +97,12 @@ lineifyPile limit pile sprites = helper 0 (reverse pile) sprites
 
 
 findSprite :: Bool -> Card -> [String] -> [String]
-findSprite True (Card num suit True) sprites = take 5 $ drop 6 sprites 
+findSprite True (Card num suit True) sprites =
+    case suit of 
+        clubs -> take 5 $ drop (clubsstart + 39 + 6 * num) sprites 
+        Hearts -> take 5 $ drop (clubsstart + 39) sprites 
+        Spades -> take 5 $ drop (clubsstart + 39) sprites 
+        Diamonds -> take 5 $ drop (clubsstart + 39) sprites 
 findSprite False (Card num suit True) sprites = 
     case suit of 
         Clubs -> take 2 $ drop 3 sprites
