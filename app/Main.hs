@@ -38,56 +38,83 @@ draw :: Board -> IO ()
 draw board = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
-    putStrLn . stringifyLines $ drawBoard board cards  
+    putStrLn "first test"
+    print $ lineifySprite 0 $ take 2 cards
+    putStrLn "second test"
+    --print $ lineifyPile (last board) cards
+    print $ lineifyBoard (findLimit board) board cards
+    putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
 
 
-printLines :: [String] -> IO ()
-printLines (x:xs) = do 
-    putStrLn x 
-    printLines xs
-printLines [] = putStrLn ""
-
-
-drawBoard :: Board -> [String] -> [[Line]]
-drawBoard [] _ = []
-drawBoard (x:xs) sprites =  createLines x sprites ++ drawBoard xs sprites
-
-createLines :: Pile -> [String] -> [[Line]]
-createLines [] _ = []
-createLines (x:xs) sprites = lineify x sprites : createLines xs sprites
+stringifyLines :: [[Line]] -> String 
+stringifyLines lines = helper (map head lines) ++ stringifyLines (map (drop 1) lines)
     where 
-        lineify :: Card -> [String] -> [Line]
-        lineify card sprites = helper 0 7 card (findSprite 7 card sprites)
-            where  -- acc, length of card, card, sprites
-                helper :: Int -> Int -> Card -> [String] -> [Line]
-                helper n len card sprite 
-                    | n == len = [(Line n (head (drop (n - 1) sprite)))]
-                    | otherwise = (Line n (head(drop (n - 1) sprite))) : helper (n+1) len card sprite
+        helper :: [Line] -> String
+        helper [] = "\n"
+        helper ((Line n string):xs) = string ++ helper xs  
+
+findLimit :: Board -> Int 
+findLimit board = do
+    let long = findLongest board
+    if long == 0 
+        then 0
+        else 2*(long - 1) + 5 
+    
+
+findLongest :: Board -> Int 
+findLongest = helper 0 
+    where 
+        helper :: Int -> Board -> Int 
+        helper n [] = n 
+        helper n (x:xs) 
+            | n < length x = helper (length x) xs 
+            | otherwise = helper n xs
+
+lineifyBoard :: Int -> Board -> [String] -> [[Line]]
+lineifyBoard _ [] _ = []
+lineifyBoard limit (x:xs) sprites = lineifyPile limit x sprites : lineifyBoard limit xs sprites
+
+lineifyPile :: Int -> Pile -> [String] -> [Line]
+lineifyPile limit pile sprites = helper 0 (reverse pile) sprites 
+    where 
+        helper :: Int -> Pile -> [String] -> [Line]
+        helper n [x] sprites = lineifySprite n (findSprite True x sprites) ++ fillToLimit (n + 1) 
+            where 
+                fillToLimit :: Int -> [Line]
+                fillToLimit n 
+                    | n < limit = (Line n "       ") : fillToLimit (n + 1)
+                    | otherwise = []
+        helper n (x:xs) sprites = 
+            do 
+                let firstLine = lineifySprite n (findSprite False x sprites)
+                let rest = helper (n + length firstLine) xs sprites
+                firstLine ++ rest
+        helper _ _ _ = []
 
 
-findSprite :: Int -> Card -> [String] -> [String]
-findSprite _ (Card _ _ False) sprites = take 2 sprites
-findSprite len (Card num suit True) sprites = 
-    case suit of
-        Clubs -> take len $ drop 3 sprites
-        Hearts -> take len $ drop 3 sprites
-        Spades -> take len $ drop 3 sprites
-        Diamonds -> take len $ drop 3 sprites
+findSprite :: Bool -> Card -> [String] -> [String]
+findSprite True (Card num suit True) sprites = take 5 $ drop 6 sprites 
+findSprite False (Card num suit True) sprites = 
+    case suit of 
+        Clubs -> take 2 $ drop 3 sprites
+        Hearts -> take 2 $ drop 3 sprites
+        Spades -> take 2 $ drop 3 sprites
+        Diamonds -> take 2 $ drop 3 sprites
+findSprite _ (Card _ _ False) sprites = take 2 sprites 
 
-breakLines :: [String] -> String
-breakLines (x:xs) = x ++ "\n" ++ breakLines xs
-breakLines [] = "\n"
+
+lineifySprite :: Int -> [String] -> [Line]
+lineifySprite _ [] = []
+-- ++ " " so there is space between piles
+lineifySprite n xs = Line n (head xs ++ " " ) : lineifySprite (n+1) (drop 1 xs)
+
+
+
+
 -- we gaming --
 showFront :: Pile -> Pile 
 showFront ((Card x s _):rest) = Card x s True : rest
 showFront [] = []
-
-stringifyLines :: [[Line]] -> String
-stringifyLines xs = helper $ map head xs 
-    where 
-        helper :: [Line] -> String
-        helper ((Line _ s):xs) = s ++ helper xs 
-        helper [] = "\n"
 
 -- still not done!!!!
 -- move int amount of cards, from pile int, to pile int 
