@@ -17,6 +17,7 @@ type Deck = [Card]
 type Pile = [Card]
 type Board = [Pile]
 type Hand = Pile 
+type TopPiles = [Pile]
 data Line = Line Int String 
     deriving Show
 
@@ -33,38 +34,54 @@ spadesstart = 237
 diamondsstart :: Int
 diamondsstart = 354
 
+emptyStart :: Int 
+emptyStart = 471
+
 main :: IO ()
 main = do
     let suits = [Clubs, Spades, Hearts, Diamonds]
     let deck = concatMap initiateSuit suits
     shuffled <- shuffleDeck deck
-    print $ take 5 shuffled
-    print $ length shuffled
     let noard = initiatePiles shuffled
     let board =  fst noard
     let hand = snd noard
-    print $ foldr ((+) . length) 0 board
-    print "-----------------------"
-    gaming (initHand hand, board)
-    print "done"
+    let topPile = initTopPile
+    gaming (initHand hand, board, topPile)
 
+exit :: IO () 
+exit = putStr "done"
 
 --------------- Game loop -------------------
-gaming :: (Hand, Board) -> IO () 
-gaming (hand, board) = do
+gaming :: (Hand, Board, TopPiles) -> IO () 
+gaming (hand, board, topPile) = do
     r <- system "clear"
     --print hand
-    draw board hand
+    draw board hand topPile
     command <- getLine
     --print $ lines command
-    gaming (handleCommand hand  board (words command))
-    
+    let commands = words command
+    if length commands == 1 
+        then handleIO commands 
+        else gaming (handleCommand hand board topPile commands)
 
-handleCommand :: Hand -> Board -> [String] -> (Hand, Board) 
-handleCommand hand board xs = 
-    case length xs of 
-        6 -> (hand, map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 3 xs) (getCommandInt 5 xs))
-        2 -> moveFromHandToBoard hand (getCommandInt 1 xs) board
+handleIO :: [String] -> IO () 
+handleIO (command:_) = case command of 
+    "restart" -> main 
+    "exit" -> exit
+    _ -> print "command not found"
+
+handleCommand :: Hand -> Board -> TopPiles -> [String] -> (Hand, Board, TopPiles) 
+handleCommand hand board topPiles xs = 
+    case length xs of
+        2 -> do 
+            let bruh = moveFromHandToBoard hand (getCommandInt 1 xs) board 
+            let b = fst bruh 
+            let bing = snd bruh 
+            (b, bing, topPiles)
+        7 -> do 
+            let (resB, resT) = moveFromBoardToTopPile (getCommandInt 3 xs) board topPiles
+            (hand , resB, resT)
+        8 -> (hand, map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 4 xs) (getCommandInt 7 xs), topPiles)
 
 getCommandInt :: Int -> [String] -> Int
 getCommandInt _ [] = error "int not found"
@@ -87,10 +104,12 @@ moveFromHandToBoard (x:xs) n board = (xs, helper (x:xs) n board)
             front ++ [x : targetPile] ++ end 
 
 -- drawing -- 
-draw :: Board -> Hand -> IO ()
-draw board hand = do
+draw :: Board -> Hand -> TopPiles -> IO ()
+draw board hand topPiles = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
+    print $ lineifyTopPile 0 topPiles cards
+    putStrLn $ stringifyLines $ lineifyTopPile 0 topPiles cards 
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (reverse (take 3 hand)) cards 
 
@@ -127,6 +146,14 @@ findLongest = helper 0
         helper n (x:xs) 
             | n < length x = helper (length x) xs 
             | otherwise = helper n xs
+
+---------------------- top pile specific drawing -----------------------
+-- There is a bug somewhere here
+lineifyTopPile :: Int -> TopPiles -> [String] -> [[Line]]
+lineifyTopPile n (x:xs) sprites 
+    | null x = lineifySprite n (emptySprite sprites) : lineifyTopPile n xs sprites
+    | otherwise = lineifySprite n (findSprite True (head x) sprites) : lineifyTopPile n xs sprites
+lineifyTopPile _ [] _ = []
 
 ---------------------- Hand specific drawing -----------------------
 -- length of board, and hand
@@ -187,13 +214,30 @@ lineifySprite n (x:xs) = Line n (x ++ " " ) : lineifySprite (n+1) xs
 
 
 
-
----------------------- initiating game -----------------------
 showFront :: Pile -> Pile 
 showFront ((Card x s _):rest) = Card x s True : rest
 showFront [] = []
 
--- still not done!!!!
+moveFromBoardToTopPile :: Int -> Board -> TopPiles -> (Board, TopPiles)
+moveFromBoardToTopPile n board topPiles = 
+    do 
+        let front = take (n - 1) board
+        let end = drop n board
+        let middle = popAmoumt 1 . head $ drop (n - 1) board
+        let resBoard = front ++ [showFront middle] ++ end
+        let card@(Card _ suit _) = head . head $ drop (n - 1) board
+        case suit of 
+            Clubs -> (resBoard, addToTopPile 1 card topPiles)    
+            Hearts -> (resBoard, addToTopPile 2 card topPiles)    
+            Spades -> (resBoard, addToTopPile 3 card topPiles)    
+            Diamonds -> (resBoard, addToTopPile 4 card topPiles)
+
+
+addToTopPile :: Int -> Card -> TopPiles -> TopPiles
+addToTopPile 1 card (x:_) = [card:x]
+addToTopPile n card (x:xs) = x : addToTopPile (n - 1) card xs
+
+
 -- move int amount of cards, from pile int, to pile int 
 moveCardsBetweenPiles :: Board -> Int -> Int -> Int -> Board
 moveCardsBetweenPiles xs amount from to 
@@ -217,6 +261,7 @@ moveCardsBetweenPiles xs amount from to
 
 
 
+
 popAmoumt :: Int -> Pile -> Pile
 popAmoumt 0 xs = xs
 popAmoumt n (_:xs) = popAmoumt (n - 1) xs
@@ -230,7 +275,14 @@ multiPopAndMove = helper [] where
     helper acc 0 xs ys = acc ++ ys
     helper acc n (x:xs) ys = helper (acc ++ [x]) (n-1) xs ys
 
--- initiation --
+
+---------------------- initiating game -----------------------
+initTopPile :: TopPiles
+initTopPile = [[],[],[],[]]
+
+emptySprite :: [String] -> [String]
+emptySprite = take 5 . drop emptyStart
+
 shuffleDeck :: Deck -> IO Deck 
 shuffleDeck xs = randNum >>= (\r -> shuffler 100 r xs) where 
                     shuffler :: Int -> Int -> Deck -> IO Deck 
