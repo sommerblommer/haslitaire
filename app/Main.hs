@@ -45,33 +45,46 @@ main = do
     let hand = snd noard
     print $ foldr ((+) . length) 0 board
     print "-----------------------"
-    gaming board $ initHand hand
+    gaming (initHand hand, board)
     print "done"
 
-gaming :: Board -> Hand -> IO () 
-gaming board hand = do
+
+--------------- Game loop -------------------
+gaming :: (Hand, Board) -> IO () 
+gaming (hand, board) = do
     r <- system "clear"
     --print hand
     draw board hand
     command <- getLine
     --print $ lines command
-    gaming (handleCommand  board (words command)) hand
+    gaming (handleCommand hand  board (words command))
     
 
-handleCommand :: Board -> [String] -> Board 
-handleCommand board xs = 
-    case (length xs) of 
-        _ -> map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 3 xs) (getCommandInt 5 xs)
+handleCommand :: Hand -> Board -> [String] -> (Hand, Board) 
+handleCommand hand board xs = 
+    case length xs of 
+        6 -> (hand, map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 3 xs) (getCommandInt 5 xs))
+        2 -> moveFromHandToBoard hand (getCommandInt 1 xs) board
 
 getCommandInt :: Int -> [String] -> Int
-getCommandInt _ [] = error "no found"
-getCommandInt 0 (x:xs) = stringToInt x 
-getCommandInt n (x:xs) = getCommandInt (n-1) xs 
+getCommandInt _ [] = error "int not found"
+getCommandInt 0 (x:_) = stringToInt x 
+getCommandInt n (_:xs) = getCommandInt (n-1) xs 
 
 initHand :: Hand -> Hand 
 initHand [] = []
 initHand ((Card n s _):xs) = Card n s True : initHand xs
 
+moveFromHandToBoard :: Hand -> Int -> Board -> (Hand, Board)  
+moveFromHandToBoard (x:xs) n board = (xs, helper (x:xs) n board)
+    where 
+        helper :: Hand -> Int -> Board -> Board
+        helper (x:_) n board = do 
+            let area = drop (n-1) board
+            let front = take (n-1) board
+            let end = drop n board
+            let targetPile = head area
+            front ++ [x : targetPile] ++ end 
 
 -- drawing -- 
 draw :: Board -> Hand -> IO ()
@@ -83,7 +96,7 @@ draw board hand = do
     --print $ lineifyBoard (findLimit board) board cards
     --print $ map length $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
-    putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (take 3 hand) cards 
+    putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (reverse (take 3 hand)) cards 
 
 stringToInt :: String -> Int 
 stringToInt = read
