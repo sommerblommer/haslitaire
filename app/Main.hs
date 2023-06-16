@@ -25,13 +25,13 @@ clubsstart :: Int
 clubsstart = 3
 
 heartsstart :: Int
-heartsstart = 126
+heartsstart = 120
 
 spadesstart :: Int
-spadesstart = 249
+spadesstart = 237
 
 diamondsstart :: Int
-diamondsstart = 372
+diamondsstart = 354
 
 main :: IO ()
 main = do
@@ -91,10 +91,6 @@ draw :: Board -> Hand -> IO ()
 draw board hand = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
-    --print $ lineifySprite 0 $ take 2 cards
-    --print $ lineifyPile (last board) cards
-    --print $ lineifyBoard (findLimit board) board cards
-    --print $ map length $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (reverse (take 3 hand)) cards 
 
