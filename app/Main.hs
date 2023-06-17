@@ -37,6 +37,10 @@ diamondsstart = 354
 emptyStart :: Int 
 emptyStart = 471
 
+commandArray :: [String] 
+commandArray = ["move X", "move from pile X to top pile", "move X from pile Y to pile Z"]
+
+
 main :: IO ()
 main = do
     let suits = [Clubs, Spades, Hearts, Diamonds]
@@ -49,25 +53,35 @@ main = do
     gaming (initHand hand, board, topPile)
 
 exit :: IO () 
-exit = putStr "done"
+exit = putStr ""
+
+displayHelp :: (Hand, Board, TopPiles) -> IO () 
+displayHelp stuff = do 
+    putStrLn "----- commands -----"
+    mapM_ putStrLn commandArray
+    putStrLn "--------------------"
+    putStrLn "press enter to continue"
+    r <- getLine
+    gaming stuff
+
+
 
 --------------- Game loop -------------------
 gaming :: (Hand, Board, TopPiles) -> IO () 
 gaming (hand, board, topPile) = do
-    r <- system "clear"
-    --print hand
+    _ <- system "clear"
     draw board hand topPile
     command <- getLine
-    --print $ lines command
     let commands = words command
     if length commands == 1 
-        then handleIO commands 
+        then handleIO (hand, board, topPile) commands 
         else gaming (handleCommand hand board topPile commands)
 
-handleIO :: [String] -> IO () 
-handleIO (command:_) = case command of 
+handleIO :: (Hand, Board, TopPiles) -> [String] -> IO () 
+handleIO stuff (command:_) = case command of 
     "restart" -> main 
     "exit" -> exit
+    "help" -> displayHelp stuff
     _ -> print "command not found"
 
 handleCommand :: Hand -> Board -> TopPiles -> [String] -> (Hand, Board, TopPiles) 
@@ -108,10 +122,10 @@ draw :: Board -> Hand -> TopPiles -> IO ()
 draw board hand topPiles = do
     allCards <- readFile "cards.txt"
     let cards = lines allCards
-    print $ lineifyTopPile 0 topPiles cards
     putStrLn $ stringifyLines $ lineifyTopPile 0 topPiles cards 
     putStrLn $ stringifyLines $ lineifyBoard (findLimit board) board cards
     putStrLn $ stringifyLines $ lineifyHand (findLimit board + 5) (reverse (take 3 hand)) cards 
+
 
 stringToInt :: String -> Int 
 stringToInt = read
@@ -185,7 +199,7 @@ lineifyPile limit pile sprites = helper 0 (reverse pile) sprites
 
 fillToLimit :: Int -> Int -> [Line]
 fillToLimit n limit
-    | n < limit = (Line n "       ") : fillToLimit (n + 1) limit
+    | n < limit = Line n "       " : fillToLimit (n + 1) limit
     | otherwise = []
 
 
@@ -234,8 +248,9 @@ moveFromBoardToTopPile n board topPiles =
 
 
 addToTopPile :: Int -> Card -> TopPiles -> TopPiles
-addToTopPile 1 card (x:_) = [card:x]
+addToTopPile 1 card (x:xs) = (card:x) : xs
 addToTopPile n card (x:xs) = x : addToTopPile (n - 1) card xs
+addToTopPile _ _ _ = error "something went wrong in addToTopPile"
 
 
 -- move int amount of cards, from pile int, to pile int 
@@ -255,11 +270,41 @@ moveCardsBetweenPiles xs amount from to
 
     where
         helper :: Int -> [Pile] -> Bool -> [Pile] 
-        helper n (x:xs) True = [popAmoumt n x] ++ take (length xs - 1) xs ++ [multiPopAndMove n x $ last xs]
-        helper n (x:xs) False = [multiPopAndMove n (last xs) x] ++ take (length xs - 1) xs ++ [popAmoumt n $ last xs]
+        helper n (x:xs) True = do 
+            if checkHelper n x (last xs) 
+                then [popAmoumt n x] ++ take (length xs - 1) xs ++ [multiPopAndMove n x $ last xs]
+                else x:xs
+        helper n (x:xs) False = do 
+            if checkHelper n (last xs) x 
+                then [multiPopAndMove n (last xs) x] ++ take (length xs - 1) xs ++ [popAmoumt n $ last xs] 
+                else x:xs
         helper _ [] _ = []
 
+checkHelper :: Int -> Pile -> Pile -> Bool
+checkHelper _ [] _ = False
+checkHelper 1 (x:_) (y:_) = checkIfLegal x y 
+checkHelper n (_:xs) ys = checkHelper (n - 1) xs ys
 
+checkIfLegal :: Card -> Card -> Bool 
+checkIfLegal (Card n suit _) (Card targetN targetSuit _) = case suit of
+    Clubs -> case targetSuit of 
+        Clubs  -> False 
+        Spades -> False 
+        _ -> n == (targetN - 1)
+    Spades -> case targetSuit of 
+        Clubs  -> False 
+        Spades -> False 
+        _ -> n == (targetN - 1)
+    Hearts -> case targetSuit of 
+        Hearts -> False 
+        Diamonds -> False 
+        _ -> n == (targetN - 1)
+    Diamonds -> case targetSuit of 
+        Hearts -> False 
+        Diamonds -> False 
+        _ -> n == (targetN - 1)
+checkIfLegal _ _ = error "something went wrong when checking move"
+        
 
 
 popAmoumt :: Int -> Pile -> Pile
@@ -272,7 +317,7 @@ multiPopAndMove :: Int -> Pile -> Pile -> Pile
 multiPopAndMove = helper [] where 
     helper :: Pile -> Int -> Pile -> Pile -> Pile
     helper acc _ [] ys = acc ++ ys
-    helper acc 0 xs ys = acc ++ ys
+    helper acc 0 _ ys = acc ++ ys
     helper acc n (x:xs) ys = helper (acc ++ [x]) (n-1) xs ys
 
 
