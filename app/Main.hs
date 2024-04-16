@@ -16,7 +16,8 @@ data Card = Card Int Suit Bool
 type Deck = [Card]
 type Pile = [Card]
 type Board = [Pile]
-type Hand = Pile 
+type Hand = Pile
+type HiddenHand = Pile
 type TopPiles = [Pile]
 data Line = Line Int String 
     deriving Show
@@ -38,7 +39,12 @@ emptyStart :: Int
 emptyStart = 471
 
 commandArray :: [String] 
-commandArray = ["move X", "move from pile X to top pile", "move X from pile Y to pile Z"]
+commandArray = ["move X",
+                "move from pile X to top pile",
+                "move X from pile Y to pile Z",
+                "move from hand to top pile ",
+                "exit",
+                "restart"]
 
 
 main :: IO ()
@@ -49,73 +55,72 @@ main = do
     let noard = initiatePiles shuffled
     let board =  fst noard
     let hand = snd noard
+    
     let topPile = initTopPile
     gaming (initHand hand, board, topPile)
 
 exit :: IO () 
 exit = putStr ""
 
-displayHelp :: (Hand, Board, TopPiles) -> IO () 
+displayHelp :: ((Hand, HiddenHand), Board, TopPiles) -> IO () 
 displayHelp stuff = do 
     putStrLn "----- commands -----"
     mapM_ putStrLn commandArray
     putStrLn "--------------------"
     putStrLn "press enter to continue"
-    r <- getLine
+    _r <- getLine
     gaming stuff
 
 
 
 --------------- Game loop -------------------
-gaming :: (Hand, Board, TopPiles) -> IO () 
-gaming (hand, board, topPile) = do
+gaming :: ((Hand, HiddenHand), Board, TopPiles) -> IO () 
+gaming ((hand, hidden), board, topPile) = do
     _ <- system "clear"
     draw board hand topPile
     command <- getLine
     let commands = words command
     if length commands == 1 
-        then handleIO (hand, board, topPile) commands 
-        else gaming (handleCommand hand board topPile commands)
+        then handleIO ((hand, hidden), board, topPile) commands 
+        else gaming (handleCommand hidden hand board topPile commands)
 
-handleIO :: (Hand, Board, TopPiles) -> [String] -> IO () 
+handleIO :: ((Hand, HiddenHand), Board, TopPiles) -> [String] -> IO () 
 handleIO stuff (command:_) = case command of 
     "restart" -> main 
     "exit" -> exit
     "help" -> displayHelp stuff
     _ -> print "command not found"
+handleIO _ _ = error "something went worng in handleIO"
 
-handleCommand :: Hand -> Board -> TopPiles -> [String] -> (Hand, Board, TopPiles) 
-handleCommand hand board topPiles xs = 
+handleCommand :: HiddenHand -> Hand -> Board -> TopPiles -> [String] -> ((Hand, HiddenHand), Board, TopPiles) 
+handleCommand hidden hand board topPiles xs = 
     case length xs of
         2 -> do 
             let bruh = moveFromHandToBoard hand (getCommandInt 1 xs) board 
             let b = fst bruh 
             let bing = snd bruh 
-            (b, bing, topPiles)
+            ((b, hidden), bing, topPiles)
+        3 -> (drawToHand hand hidden, board, topPiles)
+        6 -> do 
+            let (resHand, resTop) = moveFromHandToTopPile hand topPiles
+            ((resHand, hidden), board, resTop)
         7 -> do 
             let (resB, resT) = moveFromBoardToTopPile (getCommandInt 3 xs) board topPiles
-            (hand , resB, resT)
-        8 -> (hand, map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 4 xs) (getCommandInt 7 xs), topPiles)
+            ((hand, hidden) , resB, resT)
+        8 -> ((hand, hidden), map showFront $ moveCardsBetweenPiles board (getCommandInt 1 xs) (getCommandInt 4 xs) (getCommandInt 7 xs), topPiles)
+        _ -> ((hand, hidden), board, topPiles) 
 
 getCommandInt :: Int -> [String] -> Int
 getCommandInt _ [] = error "int not found"
 getCommandInt 0 (x:_) = stringToInt x 
 getCommandInt n (_:xs) = getCommandInt (n-1) xs 
 
-initHand :: Hand -> Hand 
-initHand [] = []
-initHand ((Card n s _):xs) = Card n s True : initHand xs
+initHand :: Hand -> (Hand, HiddenHand)
+initHand hand = splitAt 3 (helper hand) where
+    helper :: Hand -> Hand
+    helper [] = []
+    helper ((Card n s _):xs) = Card n s True : helper xs
 
-moveFromHandToBoard :: Hand -> Int -> Board -> (Hand, Board)  
-moveFromHandToBoard (x:xs) n board = (xs, helper (x:xs) n board)
-    where 
-        helper :: Hand -> Int -> Board -> Board
-        helper (x:_) n board = do 
-            let area = drop (n-1) board
-            let front = take (n-1) board
-            let end = drop n board
-            let targetPile = head area
-            front ++ [x : targetPile] ++ end 
 
 -- drawing -- 
 draw :: Board -> Hand -> TopPiles -> IO ()
@@ -174,6 +179,7 @@ lineifyTopPile _ [] _ = []
 lineifyHand :: Int -> Hand -> [String] -> [[Line]]
 lineifyHand n [x] sprites = [lineifySprite n (findSprite True x sprites)]
 lineifyHand n (x:xs) sprites = sideifyCards n (findSprite True x sprites) : lineifyHand n xs sprites 
+lineifyHand _ _ _ = []
 
     
 sideifyCards :: Int -> [String] -> [Line]
@@ -183,7 +189,9 @@ sideifyCards n (x:xs) = Line n (take 3 x ++ " ") : sideifyCards (n+1) xs
 
 lineifyBoard :: Int -> Board -> [String] -> [[Line]]
 lineifyBoard _ [] _ = []
-lineifyBoard limit (x:xs) sprites = lineifyPile limit x sprites : lineifyBoard limit xs sprites
+lineifyBoard limit (x:xs) sprites 
+    | null x = lineifyEmptyPile limit sprites : lineifyBoard limit xs sprites  
+    | otherwise = lineifyPile limit x sprites : lineifyBoard limit xs sprites
 
 lineifyPile :: Int -> Pile -> [String] -> [Line]
 lineifyPile limit pile sprites = helper 0 (reverse pile) sprites 
@@ -202,7 +210,8 @@ fillToLimit n limit
     | n < limit = Line n "       " : fillToLimit (n + 1) limit
     | otherwise = []
 
-
+lineifyEmptyPile :: Int -> [String] -> [Line]
+lineifyEmptyPile limit sprites = lineifySprite 0 (emptySprite sprites) ++ fillToLimit 5 (limit + 4)
 
 ---------------------- finding and using sprites -----------------------
 findSprite :: Bool -> Card -> [String] -> [String]
@@ -232,6 +241,15 @@ showFront :: Pile -> Pile
 showFront ((Card x s _):rest) = Card x s True : rest
 showFront [] = []
 
+
+
+
+---------------------- Game behaviour -----------------------
+drawToHand ::  Hand ->HiddenHand -> (Hand, HiddenHand)
+drawToHand [] xs = splitAt 3 xs
+drawToHand ys xs = (take 3 xs, drop 3 xs ++ ys)
+
+
 moveFromBoardToTopPile :: Int -> Board -> TopPiles -> (Board, TopPiles)
 moveFromBoardToTopPile n board topPiles = 
     do 
@@ -239,12 +257,35 @@ moveFromBoardToTopPile n board topPiles =
         let end = drop n board
         let middle = popAmoumt 1 . head $ drop (n - 1) board
         let resBoard = front ++ [showFront middle] ++ end
-        let card@(Card _ suit _) = head . head $ drop (n - 1) board
-        case suit of 
-            Clubs -> (resBoard, addToTopPile 1 card topPiles)    
-            Hearts -> (resBoard, addToTopPile 2 card topPiles)    
-            Spades -> (resBoard, addToTopPile 3 card topPiles)    
-            Diamonds -> (resBoard, addToTopPile 4 card topPiles)
+        let card = head . head $ drop (n - 1) board
+        if topChecker card topPiles 
+            then (resBoard, handleAddToTopPile card topPiles) 
+            else (board, topPiles)
+        
+
+handleAddToTopPile :: Card -> TopPiles -> TopPiles
+handleAddToTopPile card@(Card _ suit _) topPiles = case suit of 
+    Clubs ->  addToTopPile 1 card topPiles    
+    Hearts ->  addToTopPile 2 card topPiles    
+    Spades ->  addToTopPile 3 card topPiles   
+    Diamonds ->  addToTopPile 4 card topPiles
+
+-- This looks ugly, valve pls fix!!!
+topChecker :: Card -> TopPiles -> Bool
+topChecker card@(Card _ suit _) topPiles = case suit of 
+    Clubs ->  checkIfMoveToTopPileIsLegal 1 card topPiles    
+    Hearts ->  checkIfMoveToTopPileIsLegal 2 card topPiles    
+    Spades ->  checkIfMoveToTopPileIsLegal 3 card topPiles   
+    Diamonds -> checkIfMoveToTopPileIsLegal 4 card topPiles
+
+
+checkIfMoveToTopPileIsLegal :: Int -> Card -> TopPiles -> Bool  
+checkIfMoveToTopPileIsLegal 1 (Card x _ _) (y:_) = do 
+    let (Card target _ _) = head y
+    if null y 
+        then x == 1 
+        else x == target + 1 
+checkIfMoveToTopPileIsLegal n card (x:xs) = checkIfMoveToTopPileIsLegal (n-1) card xs
 
 
 addToTopPile :: Int -> Card -> TopPiles -> TopPiles
@@ -253,6 +294,21 @@ addToTopPile n card (x:xs) = x : addToTopPile (n - 1) card xs
 addToTopPile _ _ _ = error "something went wrong in addToTopPile"
 
 
+moveFromHandToBoard :: Hand -> Int -> Board -> (Hand, Board)  
+moveFromHandToBoard (x:xs) n board  
+    | checkHelper 1 (x:xs) $ head $ drop (n - 1) board = (xs, helper (x:xs) n board)
+    | otherwise = (x:xs, board)
+    where 
+        helper :: Hand -> Int -> Board -> Board
+        helper (x:_) n board = do 
+            let area = drop (n-1) board
+            let targetPile = head area
+            let front = take (n-1) board
+            let end = drop n board
+            front ++ [x : targetPile] ++ end 
+
+moveFromHandToTopPile :: Hand -> TopPiles -> (Hand, TopPiles)
+moveFromHandToTopPile (x:xs) topPiles = (xs, handleAddToTopPile x topPiles)
 -- move int amount of cards, from pile int, to pile int 
 moveCardsBetweenPiles :: Board -> Int -> Int -> Int -> Board
 moveCardsBetweenPiles xs amount from to 
@@ -282,10 +338,12 @@ moveCardsBetweenPiles xs amount from to
 
 checkHelper :: Int -> Pile -> Pile -> Bool
 checkHelper _ [] _ = False
+checkHelper _ ((Card n _ _):_) [] = n == 13 
 checkHelper 1 (x:_) (y:_) = checkIfLegal x y 
 checkHelper n (_:xs) ys = checkHelper (n - 1) xs ys
 
 checkIfLegal :: Card -> Card -> Bool 
+checkIfLegal (Card _ _ False) _ = False
 checkIfLegal (Card n suit _) (Card targetN targetSuit _) = case suit of
     Clubs -> case targetSuit of 
         Clubs  -> False 
@@ -303,8 +361,6 @@ checkIfLegal (Card n suit _) (Card targetN targetSuit _) = case suit of
         Hearts -> False 
         Diamonds -> False 
         _ -> n == (targetN - 1)
-checkIfLegal _ _ = error "something went wrong when checking move"
-        
 
 
 popAmoumt :: Int -> Pile -> Pile
@@ -334,8 +390,8 @@ shuffleDeck xs = randNum >>= (\r -> shuffler 100 r xs) where
                     shuffler 0 _ xs = return xs 
                     shuffler times n (x:xs) = do 
                         r <- randNum
-                        shuffleTail <- shuffler (times - 1) r $ swap n (x:xs)
-                        return shuffleTail
+                        shuffler (times - 1) r $ swap n (x:xs)
+                        
                                             
 
 initiatePiles :: Deck -> (Board, Hand)
